@@ -13,6 +13,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Create manifest.txt
+      run: |
+        find . -type f | xargs sha256sum > manifest.txt
+
     - name: Set up Git user
       run: |
         git config --local user.email "action@github.com"
@@ -27,6 +31,7 @@ jobs:
         git push --tags
 
     - name: Create Release
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -35,3 +40,13 @@ jobs:
         release_name: Release ${{ steps.create_tag.outputs.tag_name }}
         draft: false
         prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./manifest.txt
+        asset_name: manifest.txt
+        asset_content_type: text/plain
