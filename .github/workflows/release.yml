@@ -26,7 +26,7 @@ jobs:
       id: create_tag
       run: |
         TAG_NAME=$(date +'%Y%m%d%H%M%S')
-        echo "::set-output name=tag_name::$TAG_NAME"
+        echo "::set-output name=tag_name::\"$TAG_NAME\""
         git tag $TAG_NAME -a -m "Generated tag from GitHub Action"
         git push --tags
 
