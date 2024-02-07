@@ -88,7 +88,7 @@ jobs:
             const manifestData = fs.readFileSync(manifestPath);
 
             await github.rest.repos.uploadReleaseAsset({
-              url: ${{ steps.create_release.outputs.upload_url }},
+              url: ${{ steps.create_release.outputs.result }},
               headers: {
                 'content-type': 'text/plain',
                 'content-length': manifestData.length
