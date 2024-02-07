@@ -30,23 +30,70 @@ jobs:
         git tag $TAG_NAME -a -m "Generated tag from GitHub Action"
         git push --tags
 
-    - name: Create Release
+    # - name: Create Release
+    #   id: create_release
+    #   uses: actions/create-release@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     tag_name: ${{ steps.create_tag.outputs.tag_name }}
+    #     release_name: Release ${{ steps.create_tag.outputs.tag_name }}
+    #     draft: false
+    #     prerelease: false
+
+    # - name: Upload Release Asset
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./manifest.txt
+    #     asset_name: manifest.txt
+    #     asset_content_type: text/plain
+
+    - name: Create release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: "actions/github-script@v6"
       with:
-        tag_name: ${{ steps.create_tag.outputs.tag_name }}
-        release_name: Release ${{ steps.create_tag.outputs.tag_name }}
-        draft: false
-        prerelease: false
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        script: |
+          try {
+            const release = await github.rest.repos.createRelease({
+              draft: false,
+              body: process.env.RELEASE_BODY,
+              name: process.env.NEXT_VERSION,
+              owner: context.repo.owner,
+              prerelease: true,
+              repo: context.repo.repo,
+              tag_name: process.env.NEXT_VERSION,
+            });
+            return release.data.upload_url;
+          } catch (error) {
+            core.setFailed(error.message);
+          }
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: "actions/github-script@v6"
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./manifest.txt
-        asset_name: manifest.txt
-        asset_content_type: text/plain
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const manifestPath = path.join(process.env.GITHUB_WORKSPACE, 'manifest.txt');
+            const manifestData = fs.readFileSync(manifestPath);
+
+            await github.rest.repos.uploadReleaseAsset({
+                url: ${{ steps.create_release.outputs.upload_url }},
+              headers: {
+                'content-type': 'text/plain',
+                'content-length': manifestData.length
+              },
+              name: 'manifest.txt',
+              data: manifestData
+            });
+
+          } catch (error) {
+            core.setFailed(error.message);
+          }
