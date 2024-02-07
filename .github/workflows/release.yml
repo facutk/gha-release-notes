@@ -57,6 +57,7 @@ jobs:
       with:
         github-token: "${{ secrets.GITHUB_TOKEN }}"
         script: |
+          let upload_url = '';
           try {
             const release = await github.rest.repos.createRelease({
               draft: false,
@@ -67,10 +68,12 @@ jobs:
               repo: context.repo.repo,
               tag_name: ${{ steps.create_tag.outputs.tag_name }},
             });
-            return release.data.upload_url;
+            upload_url = release.data.upload_url;
           } catch (error) {
             core.setFailed(error.message);
           }
+          console.log(upload_url);
+          return upload_url;
 
     - name: Upload Release Asset
       uses: "actions/github-script@v6"
@@ -85,7 +88,7 @@ jobs:
             const manifestData = fs.readFileSync(manifestPath);
 
             await github.rest.repos.uploadReleaseAsset({
-                url: ${{ steps.create_release.outputs.upload_url }},
+              url: ${{ steps.create_release.outputs.upload_url }},
               headers: {
                 'content-type': 'text/plain',
                 'content-length': manifestData.length
